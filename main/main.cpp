@@ -34,13 +34,13 @@ int main() {
         borderCells[j + manager.columns] = j + manager.columns  * (manager.rows - 1);
     }
     
-    for (int i = 1 ; i < manager.rows - 1; i++) {
-        borderCells[2 * manager.columns + 2 * i] = manager.columns * (i + 1) + 0;
+    for (int i = 0 ; i < manager.rows - 1; i++) {
+        borderCells[2 * manager.columns + 2 * i] = manager.columns * (i + 1);
         borderCells[2 * manager.columns + 2 * i + 1] = manager.columns * (i + 2) - 1;
     }
     
-    for (int i = 0 ; i < borderCells.size(); i++) {
-        std::cout << borderCells[i] << '\n';
+    for (int borderCell : borderCells) {
+        std::cout << borderCell << '\n';
     }
     
     PrintMaze(manager);
@@ -60,7 +60,7 @@ MazeGrid InitializeMazeGrid(MazeGeneratorManager& manager) {
     }
     
     manager.grid.resize(manager.rows);
-    for (int i =0; i < manager.rows; i++) {
+    for (int i = 0; i < manager.rows; i++) {
         manager.grid[i].resize(manager.columns);
         for (int j =0; j < manager.columns; j++) {
             manager.grid[i][j] = -1;
@@ -75,7 +75,7 @@ void PrintMaze(MazeGeneratorManager& manager) {
     for (int i = 0; i < manager.grid.size(); i++) {
         std::cout << "  ";
         for (int j =0; j < manager.grid[i].size(); j++) {
-            std::cout << manager.grid[i][j];
+            if (manager.grid[i][j] == -1) std::cout << "\033[31m█\033[0m";
             j == manager.grid[i].size() - 1 ? std::cout << '\n' : std::cout << ' ';
         }
     }
