@@ -7,6 +7,7 @@
 #include <random>
 #include <unistd.h>
 
+
 typedef std::vector<std::vector<int>> MazeGrid;
 
 struct MazeGeneratorManager {
@@ -16,96 +17,79 @@ struct MazeGeneratorManager {
     std::pair<int, int> currentPosition{-1, -1};
 };
 
-void InitializeMazeGrid(MazeGeneratorManager &manager);
 
-void PrintMaze(MazeGeneratorManager &manager);
+void InitializeMazeGrid(MazeGeneratorManager &maze);
 
-std::pair<int, int> ChooseInitialCell(MazeGeneratorManager &maze);
+void FillExternalWalls(MazeGeneratorManager &maze);
+
+void ChooseInitialCell(MazeGeneratorManager &maze);
+
+void PrintMaze(MazeGeneratorManager &maze);
+
+void PrintMazeMatrix(MazeGeneratorManager &manager);
 
 int RandomInteger(int a, int b);
 
-void Move(MazeGeneratorManager &maze);
+bool Move(MazeGeneratorManager &maze);
+
+void CleanUpCellValues(MazeGeneratorManager &maze);
+
 
 int main() {
 
-    MazeGeneratorManager manager;
-    manager.rows = 10;
-    manager.columns = 20;
+    MazeGeneratorManager maze;
+    maze.rows = 31;
+    maze.columns = 31;
 
-    InitializeMazeGrid(manager);
+    InitializeMazeGrid(maze);
+    FillExternalWalls(maze);
+    ChooseInitialCell(maze);
 
-    int nCellsAtBorder = 2 * (manager.rows + manager.columns) - 2;
-    std::vector<int> borderCells(nCellsAtBorder);
-    for (int j = 0; j < manager.columns; j++) {
-        manager.grid[0][j] = 0;
-        manager.grid[manager.rows - 1][manager.columns - 1 - j] = 0;
-#ifdef VERBOSE
-        PrintMaze(manager);
-#endif
-    }
+    while (Move(maze)) {}
 
-    for (int i = 1; i < manager.rows - 1; i++) {
-
-        manager.grid[i][0] = 0;
-        manager.grid[manager.rows - 1 - i][manager.columns - 1] = 0;
-#ifdef VERBOSE
-        PrintMaze(manager);
-#endif
-    }
-
-    manager.currentPosition = ChooseInitialCell(manager);
-
-    while (1) {
-        Move(manager);
-    }
+    CleanUpCellValues(maze);
+    PrintMaze(maze);
+    PrintMazeMatrix(maze);
 
     return 0;
 }
 
-void InitializeMazeGrid(MazeGeneratorManager &manager) {
+void InitializeMazeGrid(MazeGeneratorManager &maze) {
 
-    if (manager.rows % 2 == 0) {
-        manager.rows += 1;
-        std::cout << "The number of rows must be odd, switching it to: " << manager.rows << ".\n";
+    if (maze.rows % 2 == 0) {
+        maze.rows += 1;
+        std::cout << "The number of rows must be odd, switching it to: " << maze.rows << ".\n";
     }
-    if (manager.columns % 2 == 0) {
-        manager.columns += 1;
-        std::cout << "The number of columns must be odd, switching it to: " << manager.columns << ".\n";
+    if (maze.columns % 2 == 0) {
+        maze.columns += 1;
+        std::cout << "The number of columns must be odd, switching it to: " << maze.columns << ".\n";
     }
 
-    manager.grid.resize(manager.rows);
-    for (int i = 0; i < manager.rows; i++) {
-        manager.grid[i].resize(manager.columns);
-        for (int j = 0; j < manager.columns; j++) {
-            manager.grid[i][j] = -1;
+    maze.grid.resize(maze.rows);
+    for (int i = 0; i < maze.rows; i++) {
+        maze.grid[i].resize(maze.columns);
+        for (int j = 0; j < maze.columns; j++) {
+            maze.grid[i][j] = -1;
         }
     }
 }
 
-void PrintMaze(MazeGeneratorManager &manager) {
+void FillExternalWalls(MazeGeneratorManager & maze) {
+    int nCellsAtBorder = 2 * (maze.rows + maze.columns) - 2;
+    std::vector<int> borderCells(nCellsAtBorder);
+    for (int j = 0; j < maze.columns; j++) {
+        maze.grid[0][j] = 0;
+        maze.grid[maze.rows - 1][maze.columns - 1 - j] = 0;
+    }
 
-    usleep(200000);
-    std::cout << ":: Printing Grid State:\n";
-    std::cout.flush();
-    system("clear");
-    for (int i = 0; i < manager.grid.size(); i++) {
-        std::cout << "  ";
-        for (int j = 0; j < manager.grid[i].size(); j++) {
-            if (i == manager.currentPosition.first && j == manager.currentPosition.second) {
-                std::cout << "\033[33m██\033[0m";
-            } else {
-                if (manager.grid[i][j] == -1) std::cout << "\033[31m██\033[0m";
-                if (manager.grid[i][j] == 0) std::cout << "\033[30m██\033[0m";
-                if (manager.grid[i][j] == 1) std::cout << "\033[37m██\033[0m";
-                if (manager.grid[i][j] == 2) std::cout << "\033[34m██\033[0m";
-            }
+    for (int i = 1; i < maze.rows - 1; i++) {
 
-            if (j == manager.grid[i].size() - 1) std::cout << '\n';
-        }
+        maze.grid[i][0] = 0;
+        maze.grid[maze.rows - 1 - i][maze.columns - 1] = 0;
     }
 }
 
-std::pair<int, int> ChooseInitialCell(MazeGeneratorManager &maze) {
+void ChooseInitialCell(MazeGeneratorManager &maze) {
 
     int i = RandomInteger(1, maze.rows - 2);
     int j = RandomInteger(1, maze.columns - 2);
@@ -114,13 +98,50 @@ std::pair<int, int> ChooseInitialCell(MazeGeneratorManager &maze) {
     if (j % 2 == 0) j--;
 
     maze.grid[i][j] = 1;
+
+    maze.currentPosition = std::make_pair(i, j);
+
+#ifdef VERBOSE
     PrintMaze(maze);
-    std::pair<int, int> a;
+#endif
 
-    a.first = i;
-    a.second = j;
+}
 
-    return a;
+void PrintMaze(MazeGeneratorManager &maze) {
+
+    std::cout << ":: Printing Grid State:\n\n";
+    std::cout.flush();
+    system("clear");
+    for (int i = 0; i < maze.grid.size(); i++) {
+        std::cout << "  ";
+        for (int j = 0; j < maze.grid[i].size(); j++) {
+            if (i == maze.currentPosition.first && j == maze.currentPosition.second) {
+                std::cout << "\033[33m██\033[0m";
+            } else {
+                if (maze.grid[i][j] == -1) std::cout << "\033[30m██\033[0m";
+                if (maze.grid[i][j] == 0) std::cout << "\033[30m██\033[0m";
+                if (maze.grid[i][j] == 1) std::cout << "\033[37m██\033[0m";
+                if (maze.grid[i][j] == 2) std::cout << "\033[34m██\033[0m";
+            }
+
+            if (j == maze.grid[i].size() - 1) std::cout << '\n';
+        }
+    }
+    std::cout << '\n';
+}
+
+void PrintMazeMatrix(MazeGeneratorManager &manager) {
+
+    std::cout << ":: Printing Grid:\n\n";
+    std::cout.flush();
+    for (int i = 0; i < manager.rows; i++) {
+        std::cout << "  ";
+        for (int j = 0; j < manager.columns; j++) {
+            std::cout << manager.grid[i][j];
+            j == manager.grid[i].size() - 1 ? std::cout << '\n' : std::cout << ' ';
+        }
+    }
+    std::cout << '\n';
 }
 
 int RandomInteger(int a, int b) {
@@ -132,7 +153,12 @@ int RandomInteger(int a, int b) {
     return dis(gen);
 }
 
-void Move(MazeGeneratorManager &maze) {
+bool Move(MazeGeneratorManager &maze) {
+
+#ifdef VERBOSE
+    PrintMaze(maze);
+#endif
+
     // Verifies possible movements
     // 0: Move UP
     // 1: Move DOWN
@@ -146,23 +172,18 @@ void Move(MazeGeneratorManager &maze) {
     int rows = maze.rows;
     int columns = maze.columns;
 
-    // Checks if cell above is inside the grid, is not a wall and has not yet been visited
-    if ((current_i - 2 >= 0) && (maze.grid[current_i - 1][current_j] == -1)) {
+    // Checks if candidate cell is inside the grid and has not been visited yet
+    if ((current_i - 2 >= 0) && (maze.grid[current_i - 2][current_j] == -1)) {
         allowedDirections.push_back(0);
     }
-
-    // Checks if cell bellow is inside the grid, is not a wall and has not yet been visited
-    if ((current_i + 2 < maze.rows) && (maze.grid[current_i + 1][current_j] == -1)) {
+    if ((current_i + 2 < maze.rows) && (maze.grid[current_i + 2][current_j] == -1)) {
         allowedDirections.push_back(1);
     }
 
-    // Checks if right cell is inside the grid, is not a wall and has not yet been visited
-    if ((current_j+ 2 < maze.columns) && (maze.grid[current_i][current_j + 1] == -1)) {
+    if ((current_j+ 2 < maze.columns) && (maze.grid[current_i][current_j + 2] == -1)) {
         allowedDirections.push_back(2);
     }
-
-    // Checks if left cell is inside the grid, is not a wall and has not yet been visited
-    if ((current_j - 2 >= 0) && (maze.grid[current_i][current_j - 1] == -1)) {
+    if ((current_j - 2 >= 0) && (maze.grid[current_i][current_j - 2] == -1)) {
         allowedDirections.push_back(3);
     }
 
@@ -185,37 +206,42 @@ void Move(MazeGeneratorManager &maze) {
             allowedDirections.push_back(3);
         }
 
-
+        // End of program
         if (allowedDirections.empty()) {
-            exit(4);
+            maze.currentPosition.first = -1;
+            maze.currentPosition.second = -1;
+            return false;
         }
     }
 
-    int direction = RandomInteger(0, allowedDirections.size() - 1);
+    int direction = RandomInteger(0, static_cast<int>(allowedDirections.size() - 1));
 
     switch (allowedDirections[direction]) {
         // 0: Move UP
         case 0:
-            if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] == -1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 1;
-                maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] = 1;
+            if (maze.grid[current_i - 2][current_j] == -1) {
+                maze.grid[current_i][current_j] = 1;
+                maze.grid[current_i - 1][current_j] = 1;
 
-                if (maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] = 0;
+                if (maze.grid[current_i][current_j - 1] == -1)
+                    maze.grid[current_i][current_j - 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i][current_j + 1] == -1)
+                    maze.grid[current_i][current_j + 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second - 1] = 0;
+                //if (maze.grid[current_i + 1][current_j] == -1)
+                //    maze.grid[current_i + 1][current_j] = 0;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i - 1][current_j - 1] == -1)
+                    maze.grid[current_i - 1][current_j - 1] = 0;
+
+                if (maze.grid[current_i - 1][current_j + 1] == -1)
+                    maze.grid[current_i - 1][current_j + 1] = 0;
             }
             // If going backwards
-            else if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] == 1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 2;
-                maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] = 2;
+            else if (maze.grid[current_i - 2][current_j] == 1) {
+                maze.grid[current_i][current_j] = 2;
+                maze.grid[current_i - 1][current_j] = 2;
             }
 
             maze.currentPosition.first -= 2;
@@ -223,27 +249,27 @@ void Move(MazeGeneratorManager &maze) {
 
             // 1: Move DOWN
         case 1:
-            if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] == -1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 1;
-                maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] = 1;
+            if (maze.grid[current_i + 2][current_j] == -1) {
+                maze.grid[current_i][current_j] = 1;
+                maze.grid[current_i + 1][current_j] = 1;
 
-                if (maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] = 0;
+                if (maze.grid[current_i][current_j - 1] == -1)
+                    maze.grid[current_i][current_j - 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i][current_j + 1] == -1)
+                    maze.grid[current_i][current_j + 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second - 1] = 0;
+                if (maze.grid[current_i + 1][current_j - 1] == -1)
+                    maze.grid[current_i + 1][current_j - 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i + 1][current_j + 1] == -1)
+                    maze.grid[current_i + 1][current_j + 1] = 0;
             }
 
             // If going backwards
-            else if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] == 1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 2;
-                maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] = 2;
+            else if (maze.grid[current_i + 2][current_j] == 1) {
+                maze.grid[current_i][current_j] = 2;
+                maze.grid[current_i + 1][current_j] = 2;
             }
 
             maze.currentPosition.first += 2;
@@ -251,27 +277,27 @@ void Move(MazeGeneratorManager &maze) {
 
         // 2: Move RIGHT
         case 2:
-            if (maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] == -1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 1;
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] = 1;
+            if (maze.grid[current_i][current_j + 2] == -1) {
+                maze.grid[current_i][current_j] = 1;
+                maze.grid[current_i][current_j + 1] = 1;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] = 0;
+                if (maze.grid[current_i - 1][current_j] == -1)
+                    maze.grid[current_i - 1][current_j] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] = 0;
+                if (maze.grid[current_i + 1][current_j] == -1)
+                    maze.grid[current_i + 1][current_j] = 0;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i - 1][current_j + 1] == -1)
+                    maze.grid[current_i - 1][current_j + 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second + 1] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second + 1] = 0;
+                if (maze.grid[current_i + 1][current_j + 1] == -1)
+                    maze.grid[current_i + 1][current_j + 1] = 0;
             }
 
             // If going backwards
-            else if (maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] == 1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 2;
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second + 1] = 2;
+            else if (maze.grid[current_i][current_j + 2] == 1) {
+                maze.grid[current_i][current_j] = 2;
+                maze.grid[current_i][current_j + 1] = 2;
             }
 
             maze.currentPosition.second += 2;
@@ -279,27 +305,27 @@ void Move(MazeGeneratorManager &maze) {
 
         // 3: Move LEFT
         case 3:
-            if (maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] == 1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 1;
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] = 1;
+            if (maze.grid[current_i][current_j - 2] == -1) {
+                maze.grid[current_i][current_j] = 1;
+                maze.grid[current_i][current_j - 1] = 1;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second] = 0;
+                if (maze.grid[current_i - 1][current_j] == -1)
+                    maze.grid[current_i - 1][current_j] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second] = 0;
+                if (maze.grid[current_i + 1][current_j] == -1)
+                    maze.grid[current_i + 1][current_j] = 0;
 
-                if (maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first - 1][maze.currentPosition.second - 1] = 0;
+                if (maze.grid[current_i - 1][current_j - 1] == -1)
+                    maze.grid[current_i - 1][current_j - 1] = 0;
 
-                if (maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second - 1] == -1)
-                    maze.grid[maze.currentPosition.first + 1][maze.currentPosition.second - 1] = 0;
+                if (maze.grid[current_i + 1][current_j - 1] == -1)
+                    maze.grid[current_i + 1][current_j - 1] = 0;
             }
 
             // If going backwards
-            else if (maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] == 1) {
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second] = 2;
-                maze.grid[maze.currentPosition.first][maze.currentPosition.second - 1] = 2;
+            else if (maze.grid[current_i][current_j - 2] == 1) {
+                maze.grid[current_i][current_j] = 2;
+                maze.grid[current_i][current_j - 1] = 2;
             }
 
             maze.currentPosition.second -= 2;
@@ -308,11 +334,23 @@ void Move(MazeGeneratorManager &maze) {
         default:
             exit(0);
     }
-    std::cout << allowedDirections[direction] << std::endl;
+}
 
-    PrintMaze(maze);
-    // Checks if right cell is inside the grid
-    //if (current_i + 2 > columns + 1)
+void CleanUpCellValues(MazeGeneratorManager &maze) {
 
-
+    for (int i = 0; i < maze.rows; i++) {
+        for (int j = 0; j < maze.rows; j++) {
+            // Fix some wall cells that were not marked during the process,
+            // since it could block a path that, at the time, was valid.
+            if (maze.grid[i][j] == -1) {
+                maze.grid[i][j] = 0;
+            }
+            // At the end of the process all path cells are visited twice and
+            // marked as '2'. This conditions ensures the valus of the
+            // resulting cells is either '0' or '1'.
+            if (maze.grid[i][j] == 2) {
+                maze.grid[i][j] = 1;
+            }
+        }
+    }
 }
