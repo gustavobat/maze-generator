@@ -1,3 +1,3 @@
-add_executable (demo main.cpp)
+add_executable (MazeDemo main.cpp)
 
-target_link_libraries (demo LINK_PUBLIC MazeGenerator)
+target_link_libraries (MazeDemo LINK_PUBLIC MazeGenerator)
